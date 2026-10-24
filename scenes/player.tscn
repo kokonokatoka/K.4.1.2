@@ -87,10 +87,10 @@ mouse_filter = 2
 
 [node name="TopLeftPanel" type="PanelContainer" parent="CanvasLayer/HUDRoot"]
 layout_mode = 0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = 430.0
-offset_bottom = 128.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 520.0
+offset_bottom = 148.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_hud")
 
 [node name="Margin" type="MarginContainer" parent="CanvasLayer/HUDRoot/TopLeftPanel"]
