@@ -1,0 +1,141 @@
+[gd_scene load_steps=4 format=3 uid="uid://btkghxwm8v35l"]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/network_manager.gd" id="2_network"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.12, 0.14, 0.18, 0.9)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="NetworkManager" type="Node" parent="."]
+script = ExtResource("2_network")
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="Background" type="ColorRect" parent="World"]
+offset_right = 1152.0
+offset_bottom = 648.0
+color = Color(0.08, 0.09, 0.12, 1)
+
+[node name="GridDecoration" type="ColorRect" parent="World"]
+offset_left = 32.0
+offset_top = 32.0
+offset_right = 1120.0
+offset_bottom = 616.0
+color = Color(0.12, 0.14, 0.18, 0.4)
+
+[node name="Players" type="Node2D" parent="World"]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="UI" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TopBar" type="PanelContainer" parent="CanvasLayer/UI"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 40.0
+grow_horizontal = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/UI/TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="StatusLabel" type="Label" parent="CanvasLayer/UI/TopBar/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Status: Initializing..."
+
+[node name="DisconnectButton" type="Button" parent="CanvasLayer/UI/TopBar/HBoxContainer"]
+layout_mode = 2
+text = "Disconnect"
+
+[node name="LoginPanel" type="PanelContainer" parent="CanvasLayer/UI"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -180.0
+offset_right = 200.0
+offset_bottom = 180.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/UI/LoginPanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="CanvasLayer/UI/LoginPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "🌐 Godot Web Online Game"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="CanvasLayer/UI/LoginPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="CanvasLayer/UI/LoginPanel/VBoxContainer"]
+layout_mode = 2
+text = "Player Name:"
+
+[node name="NameEdit" type="LineEdit" parent="CanvasLayer/UI/LoginPanel/VBoxContainer"]
+layout_mode = 2
+placeholder_text = "Enter your nickname"
+
+[node name="URLLabel" type="Label" parent="CanvasLayer/UI/LoginPanel/VBoxContainer"]
+layout_mode = 2
+text = "WebSocket Server URL (wss:// or ws://):"
+
+[node name="URLEdit" type="LineEdit" parent="CanvasLayer/UI/LoginPanel/VBoxContainer"]
+layout_mode = 2
+text = "ws://localhost:8080"
+placeholder_text = "e.g. wss://your-server.onrender.com"
+
+[node name="ConnectButton" type="Button" parent="CanvasLayer/UI/LoginPanel/VBoxContainer"]
+layout_mode = 2
+text = "🚀 Connect to Online Game"
+
+[node name="OfflineButton" type="Button" parent="CanvasLayer/UI/LoginPanel/VBoxContainer"]
+layout_mode = 2
+text = "🎮 Play Solo (Offline Mode)"
+
+[node name="HelpLabel" type="Label" parent="CanvasLayer/UI/LoginPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.65, 0.65, 1)
+theme_override_font_sizes/font_size = 12
+text = "Move: WASD / Arrow Keys
+Action: Click mouse to pulse"
+horizontal_alignment = 1
+
+[node name="ChatPanel" type="PanelContainer" parent="CanvasLayer/UI"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -180.0
+offset_right = 350.0
+offset_bottom = -16.0
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="RichTextLabel" type="RichTextLabel" parent="CanvasLayer/UI/ChatPanel"]
+layout_mode = 2
+bbcode_enabled = true
+scroll_following = true
