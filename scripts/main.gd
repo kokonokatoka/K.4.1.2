@@ -1,3 +1,4 @@
+@tool
 extends Node3D
 
 # ==============================================================================
@@ -18,6 +19,17 @@ var mat_enemy_eye := StandardMaterial3D.new()
 var mat_hit_flash := StandardMaterial3D.new()
 
 func _ready() -> void:
+	# 既存の動的生成ノードがあればクリアして再構築
+	for child_name in ["ArenaProps", "CombatTargetsRoot"]:
+		var old := get_node_or_null(child_name)
+		if old:
+			remove_child(old)
+			old.queue_free()
+
+	floating_cores.clear()
+	rotating_rings.clear()
+	target_drones.clear()
+
 	_init_materials()
 	_build_sci_fi_arena_details()
 	_spawn_combat_targets()
@@ -52,9 +64,10 @@ func _init_materials() -> void:
 	mat_hit_flash.emission_energy_multiplier = 4.0
 
 func _process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	time_acc += delta
 	
-	# 浮遊エネルギーコア
 	for i in range(floating_cores.size()):
 		var core := floating_cores[i]
 		if is_instance_valid(core):
@@ -62,16 +75,12 @@ func _process(delta: float) -> void:
 			core.rotation.y += delta * 1.2
 			core.rotation.x = sin(time_acc * 1.5 + float(i)) * 0.35
 
-	# 中央リングの回転
 	for i in range(rotating_rings.size()):
 		var ring := rotating_rings[i]
 		if is_instance_valid(ring):
 			ring.rotation.y += delta * (0.5 if i % 2 == 0 else -0.7)
 
-	# 敵ターゲットドローンのパトロール・ホバー挙動＆リスポーン管理
 	_update_target_drones(delta)
-
-	# 爆発・ヒットエフェクトの更新
 	_update_effects(delta)
 
 func _build_sci_fi_arena_details() -> void:
@@ -79,7 +88,6 @@ func _build_sci_fi_arena_details() -> void:
 	props_root.name = "ArenaProps"
 	add_child(props_root)
 
-	# 四方の大型ハイテクピラー
 	var pillar_coords := [
 		Vector3(-9, 0, -9), Vector3(9, 0, -9),
 		Vector3(-9, 0, 9),  Vector3(9, 0, 9),
@@ -93,10 +101,10 @@ func _build_sci_fi_arena_details() -> void:
 		var glow_mat := mat_amber_glow if is_amber else mat_cyan_glow
 		
 		var pillar_body := StaticBody3D.new()
+		pillar_body.name = "Pillar_%d" % i
 		pillar_body.position = pos
 		props_root.add_child(pillar_body)
 		
-		# 八角柱風の重厚な柱（シリンダー＋装甲リブ）
 		var p_mesh := MeshInstance3D.new()
 		var cyl := CylinderMesh.new()
 		cyl.top_radius = 0.75
@@ -116,19 +124,20 @@ func _build_sci_fi_arena_details() -> void:
 		col.position = Vector3(0, 2.1, 0)
 		pillar_body.add_child(col)
 		
-		# 発光トーラスリング
 		for h in [0.8, 2.2, 3.6]:
+			var h_f: float = float(h)
 			var ring := MeshInstance3D.new()
 			var tr := TorusMesh.new()
 			tr.inner_radius = 0.82
 			tr.outer_radius = 0.96
 			ring.mesh = tr
-			ring.position = Vector3(0, h, 0)
+			ring.position = Vector3(0, h_f, 0)
 			ring.material_override = glow_mat
 			pillar_body.add_child(ring)
 
 		if i < 4:
 			var core_holder := Node3D.new()
+			core_holder.name = "FloatingCore_%d" % i
 			core_holder.position = Vector3(pos.x * 0.65, 1.8, pos.z * 0.65)
 			props_root.add_child(core_holder)
 			
@@ -157,42 +166,43 @@ func _build_sci_fi_arena_details() -> void:
 			
 			floating_cores.append(core_holder)
 
-	# 外周バリアウォール
 	var wall_configs := [
 		{"pos": Vector3(0, 0.5, -15.5), "size": Vector3(31, 1.0, 0.6)},
 		{"pos": Vector3(0, 0.5, 15.5),  "size": Vector3(31, 1.0, 0.6)},
 		{"pos": Vector3(-15.5, 0.5, 0), "size": Vector3(0.6, 1.0, 31)},
 		{"pos": Vector3(15.5, 0.5, 0),  "size": Vector3(0.6, 1.0, 31)}
 	]
-	for cfg in wall_configs:
+	for w_idx in range(wall_configs.size()):
+		var cfg: Dictionary = wall_configs[w_idx]
 		var w_body := StaticBody3D.new()
+		w_body.name = "BarrierWall_%d" % w_idx
 		w_body.position = cfg["pos"]
 		props_root.add_child(w_body)
 		
 		var w_mesh := MeshInstance3D.new()
 		var w_box := BoxMesh.new()
-		w_box.size = cfg["size"]
+		var s: Vector3 = cfg["size"]
+		w_box.size = s
 		w_mesh.mesh = w_box
 		w_mesh.material_override = mat_dark_metal
 		w_body.add_child(w_mesh)
 		
 		var w_col := CollisionShape3D.new()
 		var w_shape := BoxShape3D.new()
-		w_shape.size = cfg["size"]
+		w_shape.size = s
 		w_col.shape = w_shape
 		w_body.add_child(w_col)
 		
 		var top_glow := MeshInstance3D.new()
 		var tg_box := BoxMesh.new()
-		var s: Vector3 = cfg["size"]
 		tg_box.size = Vector3(s.x, 0.1, s.z)
 		top_glow.mesh = tg_box
 		top_glow.position = Vector3(0, 0.52, 0)
 		top_glow.material_override = mat_cyan_glow
 		w_body.add_child(top_glow)
 
-	# 中央のホログラムサークル
 	var center_ring := MeshInstance3D.new()
+	center_ring.name = "CenterHoloRing"
 	var torus := TorusMesh.new()
 	torus.inner_radius = 4.35
 	torus.outer_radius = 4.5
@@ -202,8 +212,11 @@ func _build_sci_fi_arena_details() -> void:
 	props_root.add_child(center_ring)
 	rotating_rings.append(center_ring)
 
-# --- 射撃・ブレード・ミサイルの標的となる敵コンバットドローンを配置 ---
 func _spawn_combat_targets() -> void:
+	var targets_root := Node3D.new()
+	targets_root.name = "CombatTargetsRoot"
+	add_child(targets_root)
+
 	var spawn_points := [
 		Vector3(-5.0, 0.0, -5.0),
 		Vector3(5.0, 0.0, -5.0),
@@ -216,12 +229,12 @@ func _spawn_combat_targets() -> void:
 		var root := Node3D.new()
 		root.name = "TargetDrone_%d" % i
 		root.position = spawn_points[i]
-		add_child(root)
+		targets_root.add_child(root)
 
 		var visual := Node3D.new()
+		visual.name = "Visual"
 		root.add_child(visual)
 
-		# ドローン胴体（多面体コア＋装甲リング＋赤いモノアイ＋両脇のガンポッド）
 		var core := MeshInstance3D.new()
 		var sp := SphereMesh.new()
 		sp.radius = 0.65
@@ -252,7 +265,6 @@ func _spawn_combat_targets() -> void:
 		eye.material_override = mat_enemy_eye
 		visual.add_child(eye)
 
-		# HPバー（頭上の発光バー）
 		var hp_bg := MeshInstance3D.new()
 		var bg_box := BoxMesh.new()
 		bg_box.size = Vector3(1.4, 0.12, 0.06)
@@ -285,45 +297,59 @@ func _spawn_combat_targets() -> void:
 
 func _update_target_drones(delta: float) -> void:
 	for d in target_drones:
-		if not d["alive"]:
-			d["respawn_timer"] -= delta
-			if d["respawn_timer"] <= 0.0:
-				d["alive"] = true
-				d["hp"] = d["max_hp"]
-				d["root"].visible = true
-				d["hp_fill"].scale.x = 1.0
-				spawn_explosion(d["root"].global_position + Vector3(0, 1.3, 0), Color(0.0, 0.85, 1.0), 1.2)
+		var root_node: Node3D = d["root"]
+		var vis_node: Node3D = d["visual"]
+		var core_m: MeshInstance3D = d["core_mesh"]
+		var hp_f: MeshInstance3D = d["hp_fill"]
+		if not is_instance_valid(root_node):
 			continue
 
-		var p: float = d["phase"] + time_acc * 1.6
+		if not d["alive"]:
+			var rt: float = d["respawn_timer"] - delta
+			d["respawn_timer"] = rt
+			if rt <= 0.0:
+				d["alive"] = true
+				d["hp"] = d["max_hp"]
+				root_node.visible = true
+				hp_f.scale.x = 1.0
+				spawn_explosion(root_node.global_position + Vector3(0, 1.3, 0), Color(0.0, 0.85, 1.0), 1.2)
+			continue
+
+		var p: float = float(d["phase"]) + time_acc * 1.6
 		var base: Vector3 = d["base_pos"]
-		d["root"].position = base + Vector3(sin(p) * 1.2, 0.15 * sin(p * 2.0), cos(p * 0.8) * 0.8)
-		d["visual"].rotation.y = sin(p * 0.5) * 0.6
+		root_node.position = base + Vector3(sin(p) * 1.2, 0.15 * sin(p * 2.0), cos(p * 0.8) * 0.8)
+		vis_node.rotation.y = sin(p * 0.5) * 0.6
 
-		if d["flash_timer"] > 0.0:
-			d["flash_timer"] -= delta
-			if d["flash_timer"] <= 0.0:
-				d["core_mesh"].material_override = mat_enemy_armor
+		var ft: float = d["flash_timer"]
+		if ft > 0.0:
+			ft -= delta
+			d["flash_timer"] = ft
+			if ft <= 0.0:
+				core_m.material_override = mat_enemy_armor
 
-# --- プレイヤーの攻撃との当たり判定・ダメージ処理 ---
 func check_hit_targets(world_pos: Vector3, radius: float, damage: float) -> bool:
 	var hit_any := false
 	for d in target_drones:
 		if not d["alive"]:
 			continue
-		var center: Vector3 = d["root"].global_position + Vector3(0, 1.3, 0)
+		var root_node: Node3D = d["root"]
+		var core_m: MeshInstance3D = d["core_mesh"]
+		var hp_f: MeshInstance3D = d["hp_fill"]
+		var center: Vector3 = root_node.global_position + Vector3(0, 1.3, 0)
 		if center.distance_to(world_pos) <= (radius + 0.85):
 			hit_any = true
-			d["hp"] -= damage
+			var new_hp: float = float(d["hp"]) - damage
+			d["hp"] = new_hp
 			d["flash_timer"] = 0.08
-			d["core_mesh"].material_override = mat_hit_flash
-			var ratio := clampf(d["hp"] / d["max_hp"], 0.0, 1.0)
-			d["hp_fill"].scale.x = max(ratio, 0.01)
+			core_m.material_override = mat_hit_flash
+			var max_h: float = float(d["max_hp"])
+			var ratio := clampf(new_hp / max_h, 0.0, 1.0)
+			hp_f.scale.x = maxf(ratio, 0.01)
 			spawn_explosion(world_pos, Color(1.0, 0.6, 0.1), 0.7)
 
-			if d["hp"] <= 0.0:
+			if new_hp <= 0.0:
 				d["alive"] = false
-				d["root"].visible = false
+				root_node.visible = false
 				d["respawn_timer"] = 3.5
 				spawn_explosion(center, Color(1.0, 0.25, 0.1), 2.4)
 	return hit_any
@@ -334,7 +360,8 @@ func get_nearest_target_pos(from_pos: Vector3) -> Vector3:
 	for d in target_drones:
 		if not d["alive"]:
 			continue
-		var c: Vector3 = d["root"].global_position + Vector3(0, 1.3, 0)
+		var root_node: Node3D = d["root"]
+		var c: Vector3 = root_node.global_position + Vector3(0, 1.3, 0)
 		var dist := from_pos.distance_to(c)
 		if dist < best_dist:
 			best_dist = dist
@@ -367,15 +394,18 @@ func spawn_explosion(pos: Vector3, color: Color, scale_mult: float = 1.0) -> voi
 
 func _update_effects(delta: float) -> void:
 	for i in range(active_effects.size() - 1, -1, -1):
-		var ef := active_effects[i]
-		ef["time"] += delta
-		var t: float = ef["time"] / ef["duration"]
+		var ef: Dictionary = active_effects[i]
+		var cur_t: float = float(ef["time"]) + delta
+		ef["time"] = cur_t
+		var dur: float = float(ef["duration"])
+		var t: float = cur_t / dur
+		var n: Node3D = ef["node"]
+		var m: StandardMaterial3D = ef["mat"]
 		if t >= 1.0:
-			if is_instance_valid(ef["node"]):
-				ef["node"].queue_free()
+			if is_instance_valid(n):
+				n.queue_free()
 			active_effects.remove_at(i)
 		else:
-			var n: Node3D = ef["node"]
-			var m: StandardMaterial3D = ef["mat"]
-			n.scale = Vector3.ONE * (1.0 + t * 2.2)
-			m.albedo_color.a = 1.0 - t
+			if is_instance_valid(n):
+				n.scale = Vector3.ONE * (1.0 + t * 2.2)
+				m.albedo_color.a = 1.0 - t
