@@ -1,29 +1,48 @@
-[gd_scene load_steps=8 format=3 uid="uid://dq87k2vpxg8n3"]
+[gd_scene load_steps=10 format=3 uid="uid://dq87k2vpxg8n3"]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="Shader" path="res://scripts/visor_post.gdshader" id="2_visor_shader"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_col"]
-size = Vector3(0.8, 1.8, 0.8)
+size = Vector3(0.9, 1.8, 0.9)
 
-[sub_resource type="BoxMesh" id="BoxMesh_legs"]
-size = Vector3(0.6, 0.6, 0.5)
+[sub_resource type="BoxMesh" id="BoxMesh_pelvis"]
+size = Vector3(0.52, 0.22, 0.42)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
-albedo_color = Color(0.6, 0.65, 0.7, 1)
+[sub_resource type="BoxMesh" id="BoxMesh_torso"]
+size = Vector3(0.76, 0.72, 0.48)
 
-[sub_resource type="BoxMesh" id="BoxMesh_body"]
-material = SubResource("StandardMaterial3D_body")
-size = Vector3(0.8, 0.8, 0.6)
+[sub_resource type="BoxMesh" id="BoxMesh_head"]
+size = Vector3(0.52, 0.36, 0.48)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eyes"]
-albedo_color = Color(1, 0.9, 0.2, 1)
-emission_enabled = true
-emission = Color(1, 0.85, 0.1, 1)
-emission_energy_multiplier = 0.5
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_visor"]
+shader = ExtResource("2_visor_shader")
+shader_parameter/blind_amount = 0.0
+shader_parameter/player_screen_pos = Vector2(0.5, 0.5)
 
-[sub_resource type="BoxMesh" id="BoxMesh_eyes"]
-material = SubResource("StandardMaterial3D_eyes")
-size = Vector3(0.6, 0.35, 0.5)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud"]
+bg_color = Color(0.03, 0.06, 0.11, 0.82)
+border_width_left = 3
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0.78, 1, 0.85)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_warn"]
+bg_color = Color(0.22, 0.02, 0.04, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.18, 0.22, 0.95)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [node name="Player" type="CharacterBody3D"]
 script = ExtResource("1_player")
@@ -35,36 +54,98 @@ shape = SubResource("BoxShape3D_col")
 [node name="Visuals" type="Node3D" parent="."]
 
 [node name="Legs" type="MeshInstance3D" parent="Visuals"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
-mesh = SubResource("BoxMesh_legs")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.62, 0)
+mesh = SubResource("BoxMesh_pelvis")
 
 [node name="Body" type="MeshInstance3D" parent="Visuals"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
-mesh = SubResource("BoxMesh_body")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.12, 0)
+mesh = SubResource("BoxMesh_torso")
 
 [node name="HeadEyes" type="MeshInstance3D" parent="Visuals"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, -0.1)
-mesh = SubResource("BoxMesh_eyes")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.68, -0.04)
+mesh = SubResource("BoxMesh_head")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
 [node name="BlindOverlay" type="ColorRect" parent="CanvasLayer"]
-visible = false
+material = SubResource("ShaderMaterial_visor")
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0, 0, 0, 0.92)
 
-[node name="StatusLabel" type="Label" parent="CanvasLayer"]
+[node name="HUDRoot" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopLeftPanel" type="PanelContainer" parent="CanvasLayer/HUDRoot"]
+layout_mode = 0
 offset_left = 20.0
 offset_top = 20.0
-offset_right = 600.0
-offset_bottom = 120.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 6
-theme_override_font_sizes/font_size = 18
-text = "Initializing..."
+offset_right = 430.0
+offset_bottom = 128.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_hud")
+
+[node name="Margin" type="MarginContainer" parent="CanvasLayer/HUDRoot/TopLeftPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="StatusLabel" type="RichTextLabel" parent="CanvasLayer/HUDRoot/TopLeftPanel/Margin"]
+layout_mode = 2
+bbcode_enabled = true
+text = "INITIALIZING..."
+fit_content = true
+scroll_active = false
+
+[node name="WarningBanner" type="PanelContainer" parent="CanvasLayer/HUDRoot"]
+visible = false
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -280.0
+offset_top = 24.0
+offset_right = 280.0
+offset_bottom = 68.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_warn")
+
+[node name="WarningLabel" type="Label" parent="CanvasLayer/HUDRoot/WarningBanner"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.35, 0.38, 1)
+theme_override_font_sizes/font_size = 15
+text = "⚠ WARNING: OPTICAL SENSOR DISCONNECTED // EMERGENCY SONAR ACTIVE"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BottomBar" type="PanelContainer" parent="CanvasLayer/HUDRoot"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -52.0
+offset_right = -20.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_hud")
+
+[node name="TelemetryLabel" type="Label" parent="CanvasLayer/HUDRoot/BottomBar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "UNIT: AEGIS-04 | INITIALIZING TELEMETRY..."
+horizontal_alignment = 1
+vertical_alignment = 1
