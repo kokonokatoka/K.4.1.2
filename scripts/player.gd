@@ -487,9 +487,10 @@ func _build_back_units() -> void:
 	var bw2 := Node3D.new()
 	bp.add_child(bw2)
 	for s in [-1.0, 1.0]:
+		var side_f: float = float(s)
 		for w_idx in range(3):
-			var ang_z := s * (-35.0 - float(w_idx) * 22.0)
-			var wing := _add_box(bw2, Vector3(0.10, 1.15, 0.32), Vector3(s * 0.55, 0.35 + float(w_idx) * 0.12, 0.12), Vector3(-18, 0, ang_z), mat_primary)
+			var ang_z: float = side_f * (-35.0 - float(w_idx) * 22.0)
+			var wing := _add_box(bw2, Vector3(0.10, 1.15, 0.32), Vector3(side_f * 0.55, 0.35 + float(w_idx) * 0.12, 0.12), Vector3(-18, 0, ang_z), mat_primary)
 			_add_box(wing, Vector3(0.04, 1.35, 0.42), Vector3(0, 0.1, 0.18), Vector3.ZERO, mat_blade)
 	back_wpn_models.append(bw2)
 
@@ -994,18 +995,21 @@ func _update_projectiles(delta: float) -> void:
 			projectiles.remove_at(i)
 			continue
 
+		var cur_vel: Vector3 = p["vel"]
 		if p["homing"] and arena_main and arena_main.has_method("get_nearest_target_pos"):
 			var target_pos: Vector3 = arena_main.get_nearest_target_pos(n.global_position)
 			var desired_dir := (target_pos - n.global_position).normalized()
-			var cur_vel: Vector3 = p["vel"]
-			p["vel"] = cur_vel.lerp(desired_dir * 26.0, 7.5 * delta)
+			cur_vel = cur_vel.lerp(desired_dir * 26.0, 7.5 * delta)
+			p["vel"] = cur_vel
 
-		n.global_position += p["vel"] * delta
+		n.global_position += cur_vel * delta
 
 		# 着弾判定（敵ドローン または 地面）
 		var hit := false
+		var rad_f: float = p["radius"]
+		var dmg_f: float = p["dmg"]
 		if arena_main and arena_main.has_method("check_hit_targets"):
-			if arena_main.check_hit_targets(n.global_position, p["radius"] + 0.35, p["dmg"]):
+			if arena_main.check_hit_targets(n.global_position, rad_f + 0.35, dmg_f):
 				hit = true
 		if n.global_position.y <= 0.1:
 			hit = true
